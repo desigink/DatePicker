@@ -14,6 +14,27 @@ interface RollingRange {
   customDay?: number;
 }
 
+type TabType = 'calendar' | 'since' | 'last';
+type LastEndingType = 'today' | 'yesterday' | 'lastWeek' | 'lastMonth' | 'lastYear' | 'custom';
+
+interface PresetRange {
+  label: string;
+  value: string;
+}
+
+const presetRanges: PresetRange[] = [
+  { label: 'Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'Past Week', value: 'pastWeek' },
+  { label: 'Month to Date', value: 'monthToDate' },
+  { label: 'Past 4 Weeks', value: 'past4Weeks' },
+  { label: 'Past 12 Weeks', value: 'past12Weeks' },
+  { label: 'Year to Date', value: 'yearToDate' },
+  { label: 'Past 6 Months', value: 'past6Months' },
+  { label: 'Past 12 Months', value: 'past12Months' },
+  { label: 'Custom Range', value: 'custom' }
+];
+
 interface DateRangePickerProps {
   onRangeSelect: (range: DateRange) => void;
   className?: string;
@@ -24,7 +45,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedRange, setSelectedRange] = useState<string>('');
+  const [selectedRange, setSelectedRange] = useState<string>('today');
   const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -34,13 +55,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   });
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [previousMonth, setPreviousMonth] = useState<Date>(subMonths(new Date(), 1));
-  const [activeTab, setActiveTab] = useState<'fixed' | 'since' | 'last'>('fixed');
+  const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [sinceValue, setSinceValue] = useState<number>(1);
   const [sinceUnit, setSinceUnit] = useState<'days' | 'weeks' | 'months' | 'years'>('days');
   const [lastValue, setLastValue] = useState<number>(1);
   const [lastUnit, setLastUnit] = useState<'days' | 'weeks' | 'months' | 'years'>('days');
   const [lastEndValue, setLastEndValue] = useState<number>(0);
   const [lastEndUnit, setLastEndUnit] = useState<'days' | 'weeks' | 'months' | 'years'>('days');
+  const [lastEnding, setLastEnding] = useState<LastEndingType>('today');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showTwoCalendars, setShowTwoCalendars] = useState<boolean>(false);
 
@@ -212,6 +234,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const handleCustomRange = () => {
     setSelectedRange('custom');
+    setActiveTab('calendar');
     setShowTwoCalendars(true);
   };
 
@@ -272,88 +295,82 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   const handleLastValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 1;
+    const value = parseInt(e.target.value);
     setLastValue(value);
-    handleLastChange(value, lastUnit, lastEndValue, lastEndUnit);
+    handleLastChange();
   };
 
   const handleLastUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const unit = e.target.value as 'days' | 'weeks' | 'months' | 'years';
     setLastUnit(unit);
-    
-    // Reset the end unit to match the selected unit if it's not compatible
-    if (unit === 'days' && lastEndUnit !== 'days') {
-      setLastEndUnit('days');
-    } else if (unit === 'weeks' && lastEndUnit !== 'days' && lastEndUnit !== 'weeks') {
-      setLastEndUnit('weeks');
-    } else if (unit === 'months' && lastEndUnit !== 'days' && lastEndUnit !== 'weeks' && lastEndUnit !== 'months') {
-      setLastEndUnit('months');
-    }
-    
-    handleLastChange(lastValue, unit, lastEndValue, lastEndUnit);
+    handleLastChange();
   };
 
   const handleLastEndValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
     setLastEndValue(value);
-    handleLastChange(lastValue, lastUnit, value, lastEndUnit);
+    handleLastChange();
   };
 
   const handleLastEndUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const unit = e.target.value as 'days' | 'weeks' | 'months' | 'years';
     setLastEndUnit(unit);
-    handleLastChange(lastValue, lastUnit, lastEndValue, unit);
+    handleLastChange();
   };
 
-  const handleLastChange = (value: number, unit: 'days' | 'weeks' | 'months' | 'years', endValue: number = 0, endUnit: 'days' | 'weeks' | 'months' | 'years' = 'days') => {
-    const today = new Date();
-    let endDate = today;
-    let startDate: Date;
-
-    // Calculate end date if specified
-    if (endValue > 0) {
-      switch (endUnit) {
-        case 'days':
-          endDate = subDays(today, endValue);
+  const handleLastEndingChange = (value: LastEndingType, date?: Date | null) => {
+    setLastEnding(value);
+    if (value === 'custom' && date) {
+      setCustomEndDate(date);
+    } else {
+      const today = new Date();
+      let endDate = new Date();
+      
+      switch (value) {
+        case 'yesterday':
+          endDate = subDays(today, 1);
           break;
-        case 'weeks':
-          endDate = subWeeks(today, endValue);
+        case 'lastWeek':
+          endDate = subWeeks(today, 1);
           break;
-        case 'months':
-          endDate = subMonths(today, endValue);
+        case 'lastMonth':
+          endDate = subMonths(today, 1);
           break;
-        case 'years':
-          endDate = subYears(today, endValue);
+        case 'lastYear':
+          endDate = subYears(today, 1);
           break;
+        default:
+          endDate = today;
       }
+      
+      setCustomEndDate(endDate);
     }
+    
+    handleLastChange();
+  };
 
-    // Calculate start date based on the end date
-    switch (unit) {
+  const handleLastChange = () => {
+    const today = new Date();
+    let startDate = new Date();
+    
+    switch (lastUnit) {
       case 'days':
-        startDate = subDays(endDate, value);
+        startDate = subDays(today, lastValue);
         break;
       case 'weeks':
-        startDate = subWeeks(endDate, value);
+        startDate = subWeeks(today, lastValue);
         break;
       case 'months':
-        startDate = subMonths(endDate, value);
+        startDate = subMonths(today, lastValue);
         break;
       case 'years':
-        startDate = subYears(endDate, value);
+        startDate = subYears(today, lastValue);
         break;
-      default:
-        startDate = subDays(endDate, value);
     }
-
-    setCustomStartDate(startDate);
-    setCustomEndDate(endDate);
     
-    // Determine if we need two calendars based on the date range
-    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
-                      (endDate.getMonth() - startDate.getMonth());
-    setShowTwoCalendars(monthDiff > 0 || 
-                        (monthDiff === 0 && endDate.getDate() - startDate.getDate() > 15));
+    setCustomStartDate(startDate);
+    setCustomEndDate(today);
+    setSelectedRange('custom');
   };
 
   const getDisplayText = () => {
@@ -383,7 +400,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           return `Last 12 months (${format(range.startDate, 'MMM d, yyyy')} - ${format(range.endDate, 'MMM d, yyyy')})`;
         case 'custom':
           if (customStartDate && customEndDate) {
-            if (activeTab === 'fixed') {
+            if (activeTab === 'calendar') {
               return `${format(customStartDate, 'MMM d, yyyy')} - ${format(customEndDate, 'MMM d, yyyy')}`;
             } else if (activeTab === 'since') {
               return `Since ${format(customStartDate, 'MMM d, yyyy')}`;
@@ -407,12 +424,16 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setPreviousMonth(subMonths(date, 1));
   };
 
+  const isDateInRange = (date: Date, startDate: Date | null, endDate: Date | null): boolean => {
+    if (!startDate || !endDate) return false;
+    return date >= startDate && date <= endDate;
+  };
+
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className="relative">
       <button
-        type="button"
-        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
         onClick={() => setIsOpen(!isOpen)}
+        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
       >
         <span className="truncate">{getDisplayText()}</span>
         <svg 
@@ -424,7 +445,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
-      
+
       {isOpen && (
         <div className="absolute z-10 mt-2 w-[1000px] rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 overflow-hidden">
           <div className="flex">
@@ -432,117 +453,20 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <div className="w-1/3 border-r border-gray-200 bg-gray-50">
               <div className="p-4">
                 <div className="space-y-1">
-                  <button 
-                    onClick={() => handleRangeSelect('today')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'today' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Today
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('yesterday')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'yesterday' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Yesterday
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('pastWeek')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'pastWeek' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Past Week
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('monthToDate')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'monthToDate' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Month to Date
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('past4Weeks')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'past4Weeks' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Past 4 Weeks
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('past12Weeks')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'past12Weeks' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Past 12 Weeks
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('yearToDate')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'yearToDate' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Year to Date
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('past6Months')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'past6Months' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Past 6 Months
-                  </button>
-                  <button 
-                    onClick={() => handleRangeSelect('past12Months')}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'past12Months' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Past 12 Months
-                  </button>
-                  <div className="border-t border-gray-200 my-2" />
-                  <button 
-                    onClick={handleCustomRange}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
-                      selectedRange === 'custom' 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    role="menuitem"
-                  >
-                    Custom Range
-                  </button>
+                  {presetRanges.map((range) => (
+                    <button
+                      key={range.value}
+                      onClick={() => handleRangeSelect(range.value)}
+                      className={`block w-full text-left px-4 py-2 text-sm rounded-md transition-colors duration-150 ${
+                        selectedRange === range.value 
+                          ? 'bg-blue-50 text-blue-700 font-medium' 
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                      role="menuitem"
+                    >
+                      {range.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -557,14 +481,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 <div className="mb-4 border-b border-gray-200">
                   <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                     <button
-                      onClick={() => setActiveTab('fixed')}
+                      onClick={() => setActiveTab('calendar')}
                       className={`${
-                        activeTab === 'fixed'
+                        activeTab === 'calendar'
                           ? 'border-blue-500 text-blue-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                       } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-150`}
                     >
-                      Fixed
+                      Calendar
                     </button>
                     <button
                       onClick={() => setActiveTab('since')}
@@ -589,102 +513,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   </nav>
                 </div>
               )}
-              
-              {selectedRange === 'custom' && activeTab === 'since' && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg shadow-sm">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-700">Show data since</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={sinceValue}
-                      onChange={handleSinceValueChange}
-                      className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                    />
-                    <select
-                      value={sinceUnit}
-                      onChange={handleSinceUnitChange}
-                      className="px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                    >
-                      <option value="days">days</option>
-                      <option value="weeks">weeks</option>
-                      <option value="months">months</option>
-                      <option value="years">years</option>
-                    </select>
-                    <span className="text-sm text-gray-700">ago</span>
-                  </div>
-                </div>
-              )}
-              
-              {selectedRange === 'custom' && activeTab === 'last' && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg shadow-sm">
-                  <div className="flex flex-col space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-700">Show data for the last</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={lastValue}
-                        onChange={handleLastValueChange}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                      />
-                      <select
-                        value={lastUnit}
-                        onChange={handleLastUnitChange}
-                        className="px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                      >
-                        <option value="days">days</option>
-                        <option value="weeks">weeks</option>
-                        <option value="months">months</option>
-                        <option value="years">years</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-700">Ending</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={lastEndValue}
-                        onChange={handleLastEndValueChange}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                      />
-                      <select
-                        value={lastEndUnit}
-                        onChange={handleLastEndUnitChange}
-                        className="px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                      >
-                        {lastUnit === 'days' && (
-                          <option value="days">days</option>
-                        )}
-                        {lastUnit === 'weeks' && (
-                          <>
-                            <option value="days">days</option>
-                            <option value="weeks">weeks</option>
-                          </>
-                        )}
-                        {lastUnit === 'months' && (
-                          <>
-                            <option value="days">days</option>
-                            <option value="weeks">weeks</option>
-                            <option value="months">months</option>
-                          </>
-                        )}
-                        {lastUnit === 'years' && (
-                          <>
-                            <option value="days">days</option>
-                            <option value="weeks">weeks</option>
-                            <option value="months">months</option>
-                            <option value="years">years</option>
-                          </>
-                        )}
-                      </select>
-                      <span className="text-sm text-gray-700">ago</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
+
               <div className="flex gap-4">
                 {showTwoCalendars ? (
                   <>
@@ -743,7 +572,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   />
                 )}
               </div>
-              
+
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={handleApply}
