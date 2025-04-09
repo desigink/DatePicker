@@ -1,40 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  format, 
-  subDays, 
-  subMonths, 
-  subWeeks, 
-  startOfYear, 
-  endOfDay,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  previousMonday,
-  nextMonday,
-  previousFriday,
-  nextFriday,
-  setDay,
-  getDay,
-  subYears
-} from 'date-fns';
 import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
+import 'react-datepicker/dist/react-datepicker.css';
+import { format, subDays, subWeeks, subMonths, subYears, startOfYear, startOfMonth, endOfMonth, startOfWeek, endOfWeek, previousMonday, previousFriday, getDay } from 'date-fns';
 
 export interface DateRange {
   startDate: Date;
   endDate: Date;
 }
 
-interface DateRangePickerProps {
-  onRangeSelect: (range: DateRange) => void;
-  className?: string;
-}
-
 interface RollingRange {
   startPoint: string;
   endPoint: string;
-  customDay?: number; // 0-6 for Sunday-Saturday
+  customDay?: number;
+}
+
+interface DateRangePickerProps {
+  onRangeSelect: (range: DateRange) => void;
+  className?: string;
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({ 
@@ -43,7 +25,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<string>('');
-  const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -67,7 +48,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setShowCustomPicker(false);
         setShowRollingPicker(false);
       }
     };
@@ -232,7 +212,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const handleCustomRange = () => {
     setSelectedRange('custom');
-    setShowCustomPicker(false);
     setShowTwoCalendars(true);
   };
 

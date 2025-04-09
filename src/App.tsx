@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import DateRangePicker, { DateRange } from './components/DateRangePicker';
 
 function App() {
