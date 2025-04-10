@@ -161,6 +161,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
       case 'months':
         startDate = subMonths(today, value);
         break;
+      default:
+        startDate = subDays(today, 7); // Default to 7 days
     }
     
     setSinceStartDate(startDate);
@@ -220,6 +222,22 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
       const today = new Date();
       setSinceStartDate(date);
       onRangeChange({ startDate: date, endDate: today });
+      
+      // Calculate the difference in days
+      const diffTime = Math.abs(today.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Update the since value and unit
+      if (diffDays <= 31) {
+        setSinceValue(diffDays);
+        setSinceUnit('days');
+      } else if (diffDays <= 365) {
+        setSinceValue(Math.ceil(diffDays / 7));
+        setSinceUnit('weeks');
+      } else {
+        setSinceValue(Math.ceil(diffDays / 30));
+        setSinceUnit('months');
+      }
     } else if (activeTab === 'fixed') {
       if (!customStartDate || (customStartDate && customEndDate)) {
         setCustomStartDate(date);
