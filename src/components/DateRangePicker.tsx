@@ -26,7 +26,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const [lastValue, setLastValue] = useState(7);
   const [lastUnit, setLastUnit] = useState<'days' | 'weeks' | 'months'>('days');
   const [lastEndValue, setLastEndValue] = useState(0);
-  const [lastEndUnit, setLastEndUnit] = useState<TimeUnit>('days');
+  const [lastEndUnit] = useState<TimeUnit>('days');
   const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [rollingRange, setRollingRange] = useState<RollingRange>({
     startPoint: 'firstDayOfMonth',
@@ -291,8 +291,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
       default:
         endDate = subDays(today, 0); // Default to today
     }
-    
-    setEndDate(endDate);
     
     // Calculate the start date based on the current 'Show data for the last' value and unit
     let startDate: Date;
