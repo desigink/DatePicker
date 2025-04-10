@@ -25,8 +25,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const [sinceUnit, setSinceUnit] = useState<'days' | 'weeks' | 'months'>('days');
   const [lastValue, setLastValue] = useState(7);
   const [lastUnit, setLastUnit] = useState<'days' | 'weeks' | 'months'>('days');
-  const [lastEndValue] = useState(0);
-  const [lastEndUnit] = useState<TimeUnit>('days');
+  const [lastEndValue, setLastEndValue] = useState(0);
+  const [lastEndUnit, setLastEndUnit] = useState<TimeUnit>('days');
   const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [rollingRange, setRollingRange] = useState<RollingRange>({
     startPoint: 'firstDayOfMonth',
@@ -36,6 +36,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [previousMonth, setPreviousMonth] = useState(subMonths(new Date(), 1));
   const [sinceStartDate, setSinceStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -197,22 +198,124 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
     setLastValue(value);
     setLastUnit(unit);
     
-    const today = new Date();
+    // Calculate the start date based on the new value and unit
+    const endDate = customEndDate || new Date();
     let startDate: Date;
     
     switch (unit) {
       case 'days':
-        startDate = subDays(today, value);
+        startDate = subDays(endDate, value);
         break;
       case 'weeks':
-        startDate = subWeeks(today, value);
+        startDate = subWeeks(endDate, value);
         break;
       case 'months':
-        startDate = subMonths(today, value);
+        startDate = subMonths(endDate, value);
         break;
+      default:
+        startDate = subDays(endDate, 7); // Default to 7 days
     }
     
-    onRangeChange({ startDate, endDate: today });
+    onRangeChange({ startDate, endDate });
+    
+    // Update the calendar's selected date range
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    
+    // Add an offset to the selected end date in the calendar
+    let offsetEndDate: Date;
+    
+    switch (unit) {
+      case 'days':
+        offsetEndDate = subDays(endDate, value);
+        break;
+      case 'weeks':
+        offsetEndDate = subWeeks(endDate, value);
+        break;
+      case 'months':
+        offsetEndDate = subMonths(endDate, value);
+        break;
+      default:
+        offsetEndDate = subDays(endDate, 7); // Default to 7 days
+    }
+    
+    setEndDate(offsetEndDate);
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    setEndDate(date);
+    
+    if (date) {
+      // Calculate the start date based on the current 'Show data for the last' value and unit
+      let startDate: Date;
+      
+      switch (lastUnit) {
+        case 'days':
+          startDate = subDays(date, lastValue);
+          break;
+        case 'weeks':
+          startDate = subWeeks(date, lastValue);
+          break;
+        case 'months':
+          startDate = subMonths(date, lastValue);
+          break;
+        default:
+          startDate = subDays(date, 7); // Default to 7 days
+      }
+      
+      onRangeChange({ startDate, endDate: date });
+      
+      // Update the calendar's selected date range
+      setCustomStartDate(startDate);
+      setCustomEndDate(date);
+    }
+  };
+
+  const handleEndDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    setLastEndValue(value);
+    
+    const today = new Date();
+    let endDate: Date;
+    
+    switch (lastEndUnit) {
+      case 'days':
+        endDate = subDays(today, value);
+        break;
+      case 'weeks':
+        endDate = subWeeks(today, value);
+        break;
+      case 'months':
+        endDate = subMonths(today, value);
+        break;
+      default:
+        endDate = subDays(today, 0); // Default to today
+    }
+    
+    setEndDate(endDate);
+    
+    // Calculate the start date based on the current 'Show data for the last' value and unit
+    let startDate: Date;
+    
+    switch (lastUnit) {
+      case 'days':
+        startDate = subDays(endDate, lastValue);
+        break;
+      case 'weeks':
+        startDate = subWeeks(endDate, lastValue);
+        break;
+      case 'months':
+        startDate = subMonths(endDate, lastValue);
+        break;
+      default:
+        startDate = subDays(endDate, 7); // Default to 7 days
+    }
+    
+    onRangeChange({ startDate, endDate });
+    
+    // Update the calendar's selected date range
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
   };
 
   const handleCustomDateChange = (date: Date, isStart: boolean) => {
@@ -240,7 +343,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
 
   const handleCalendarSelect = (date: Date | null) => {
     if (!date) return;
-    
+
     if (activeTab === 'since') {
       const today = new Date();
       setSinceStartDate(date);
@@ -269,6 +372,28 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
         setCustomEndDate(date);
         onRangeChange({ startDate: customStartDate, endDate: date });
       }
+    } else if (activeTab === 'last') {
+      // Set the selected date as the end date
+      setEndDate(date);
+      
+      // Calculate the start date based on the current 'Show data for the last' value
+      let startDate: Date;
+      
+      switch (lastUnit) {
+        case 'days':
+          startDate = subDays(date, lastValue);
+          break;
+        case 'weeks':
+          startDate = subWeeks(date, lastValue);
+          break;
+        case 'months':
+          startDate = subMonths(date, lastValue);
+          break;
+        default:
+          startDate = subDays(date, 7); // Default to 7 days
+      }
+      
+      onRangeChange({ startDate, endDate: date });
     }
   };
 
@@ -579,7 +704,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
                         type="number"
                         min="0"
                         value={lastEndValue}
-                        onChange={(e) => handleLastChange(parseInt(e.target.value), lastUnit)}
+                        onChange={handleEndDateInputChange}
                         className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                       />
                       <select
