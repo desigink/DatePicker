@@ -33,12 +33,16 @@ jobs:
           npm ci
           npm list
       
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+      
       - name: Build
         run: |
           echo "Building with BASE_URL: $BASE_URL"
           npm run build
         env:
           BASE_URL: '/DatePicker/'
+          NODE_ENV: 'production'
       
       - name: List build output
         run: ls -la dist
