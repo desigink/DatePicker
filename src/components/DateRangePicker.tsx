@@ -33,7 +33,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
     endPoint: 'today',
     customDay: 1
   });
-  const [showTwoMonths, setShowTwoMonths] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [previousMonth, setPreviousMonth] = useState(subMonths(new Date(), 1));
   const [sinceStartDate, setSinceStartDate] = useState<Date | null>(null);
@@ -64,54 +63,44 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
       case 'today':
         startDate = today;
         endDate = today;
-        setShowTwoMonths(false);
         break;
       case 'yesterday':
         startDate = subDays(today, 1);
         endDate = subDays(today, 1);
-        setShowTwoMonths(false);
         break;
       case 'pastWeek':
         startDate = subDays(today, 7);
         endDate = today;
-        setShowTwoMonths(false);
         break;
       case 'monthToDate':
         startDate = startOfMonth(today);
         endDate = today;
-        setShowTwoMonths(false);
         break;
       case 'past4Weeks':
         startDate = subDays(today, 28);
         endDate = today;
-        setShowTwoMonths(true);
         break;
       case 'past12Weeks':
         startDate = subDays(today, 84);
         endDate = today;
-        setShowTwoMonths(true);
         break;
       case 'yearToDate':
         startDate = startOfYear(today);
         endDate = today;
-        setShowTwoMonths(true);
         break;
       case 'past6Months':
         startDate = subMonths(today, 6);
         endDate = today;
-        setShowTwoMonths(true);
         break;
       case 'past12Months':
         startDate = subMonths(today, 12);
         endDate = today;
-        setShowTwoMonths(true);
         break;
       case 'custom':
         if (customStartDate && customEndDate) {
           startDate = customStartDate;
           endDate = customEndDate;
         }
-        setShowTwoMonths(true);
         break;
     }
 
@@ -130,22 +119,18 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const handleCustomRange = () => {
     setSelectedRange('custom');
     setActiveTab('fixed');
-    setShowTwoMonths(true);
   };
 
   const handleFixedTabClick = () => {
     setActiveTab('fixed');
-    setShowTwoMonths(true);
   };
 
   const handleSinceTabClick = () => {
     setActiveTab('since');
-    setShowTwoMonths(true);
   };
 
   const handleLastTabClick = () => {
     setActiveTab('last');
-    setShowTwoMonths(true);
   };
 
   const handleSinceChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
@@ -216,7 +201,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const handleMonthChange = (date: Date) => {
     setCurrentMonth(date);
     setPreviousMonth(subMonths(date, 1));
-    setShowTwoMonths(true);
   };
 
   const handleCalendarSelect = (date: Date | null) => {
