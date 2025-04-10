@@ -34,18 +34,32 @@ jobs:
           npm list
       
       - name: TypeScript Check
-        run: npx tsc --noEmit
+        run: |
+          npx tsc --noEmit || {
+            echo "TypeScript check failed"
+            exit 1
+          }
       
       - name: Build
         run: |
           echo "Building with BASE_URL: $BASE_URL"
-          npm run build
+          npm run build || {
+            echo "Build failed"
+            cat npm-debug.log || true
+            exit 1
+          }
         env:
           BASE_URL: '/DatePicker/'
           NODE_ENV: 'production'
+          CI: 'true'
       
       - name: List build output
-        run: ls -la dist
+        run: |
+          echo "Contents of dist directory:"
+          ls -la dist || {
+            echo "dist directory not found"
+            exit 1
+          }
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
