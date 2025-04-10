@@ -29,12 +29,19 @@ jobs:
           cache: 'npm'
       
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm list
       
       - name: Build
-        run: npm run build
+        run: |
+          echo "Building with BASE_URL: $BASE_URL"
+          npm run build
         env:
           BASE_URL: '/DatePicker/'
+      
+      - name: List build output
+        run: ls -la dist
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
