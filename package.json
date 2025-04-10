@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "homepage": "https://desigink.github.io/DatePicker",
+  "homepage": "/",
   "dependencies": {
     "@types/react": "^18.2.0",
     "@types/react-datepicker": "^6.2.0",

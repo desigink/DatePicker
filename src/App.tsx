@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import DateRangePicker, { DateRange } from './components/DateRangePicker';
+import DateRangePicker from './components/DateRangePicker';
 
 function App() {
-  const [selectedRange, setSelectedRange] = useState<DateRange | null>(null);
+  const [selectedRange, setSelectedRange] = useState<{ startDate: Date; endDate: Date } | null>(null);
 
-  const handleRangeSelect = (range: DateRange) => {
+  const handleRangeChange = (range: { startDate: Date; endDate: Date }) => {
     setSelectedRange(range);
     console.log('Selected range:', range);
   };
@@ -17,7 +17,7 @@ function App() {
             Select a date range
           </h1>
           
-          <DateRangePicker onRangeSelect={handleRangeSelect} />
+          <DateRangePicker onRangeChange={handleRangeChange} />
           
           {selectedRange && (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
