@@ -133,14 +133,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
     setActiveTab('last');
   };
 
-  const handleSinceChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
+  const handleSinceValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
     setSinceValue(value);
-    setSinceUnit(unit);
     
+    // Calculate the start date based on the new value and unit
     const today = new Date();
     let startDate: Date;
     
-    switch (unit) {
+    switch (sinceUnit) {
       case 'days':
         startDate = subDays(today, value);
         break;
@@ -156,6 +157,40 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
     
     setSinceStartDate(startDate);
     onRangeChange({ startDate, endDate: today });
+    
+    // Update the calendar's selected date range
+    setCustomStartDate(startDate);
+    setCustomEndDate(today);
+  };
+
+  const handleSinceUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const unit = e.target.value as 'days' | 'weeks' | 'months';
+    setSinceUnit(unit);
+    
+    // Calculate the start date based on the current value and new unit
+    const today = new Date();
+    let startDate: Date;
+    
+    switch (unit) {
+      case 'days':
+        startDate = subDays(today, sinceValue);
+        break;
+      case 'weeks':
+        startDate = subWeeks(today, sinceValue);
+        break;
+      case 'months':
+        startDate = subMonths(today, sinceValue);
+        break;
+      default:
+        startDate = subDays(today, 7); // Default to 7 days
+    }
+    
+    setSinceStartDate(startDate);
+    onRangeChange({ startDate, endDate: today });
+    
+    // Update the calendar's selected date range
+    setCustomStartDate(startDate);
+    setCustomEndDate(today);
   };
 
   const handleLastChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
@@ -494,12 +529,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
                       type="number"
                       min="1"
                       value={sinceValue}
-                      onChange={(e) => handleSinceChange(parseInt(e.target.value), sinceUnit)}
+                      onChange={handleSinceValueChange}
                       className="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                     />
                     <select
                       value={sinceUnit}
-                      onChange={(e) => handleSinceChange(sinceValue, e.target.value as 'days' | 'weeks' | 'months')}
+                      onChange={handleSinceUnitChange}
                       className="px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                     >
                       <option value="days">Days</option>
