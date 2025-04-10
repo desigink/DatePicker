@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,6 +33,8 @@ jobs:
       
       - name: Build
         run: npm run build
+        env:
+          BASE_URL: '/DatePicker/'
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
