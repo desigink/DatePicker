@@ -1,16 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import { format, subDays, subWeeks, subMonths, subYears, startOfYear, startOfMonth, endOfMonth, startOfWeek, endOfWeek, previousMonday, previousFriday, getDay, differenceInDays } from 'date-fns';
+import "react-datepicker/dist/react-datepicker.css";
+import { format, subDays, subWeeks, subMonths, startOfYear, startOfMonth, endOfMonth, startOfWeek, endOfWeek, previousMonday, previousFriday, getDay } from 'date-fns';
+
+type TimeUnit = 'days' | 'weeks' | 'months';
 
 interface DateRangePickerProps {
   onRangeChange: (range: { startDate: Date; endDate: Date }) => void;
-  initialRange?: { startDate: Date; endDate: Date };
 }
-
-type DateRange = 'today' | 'yesterday' | 'pastWeek' | 'monthToDate' | 'past4Weeks' | 'past12Weeks' | 'yearToDate' | 'past6Months' | 'past12Months' | 'custom' | 'rolling';
-type TabType = 'fixed' | 'since' | 'last';
-type TimeUnit = 'days' | 'weeks' | 'months';
 
 interface RollingRange {
   startPoint: 'firstDayOfMonth' | 'lastDayOfMonth' | 'firstDayOfWeek' | 'lastDayOfWeek' | 'lastMonday' | 'lastFriday' | 'customDay';
@@ -18,59 +15,37 @@ interface RollingRange {
   customDay?: number;
 }
 
-interface PresetOption {
-  value: string;
-  label: string;
-}
-
-const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange, initialRange }) => {
+const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<string>('');
-  const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<'fixed' | 'since' | 'last'>('fixed');
+  const [sinceValue, setSinceValue] = useState(7);
+  const [sinceUnit, setSinceUnit] = useState<'days' | 'weeks' | 'months'>('days');
+  const [lastValue, setLastValue] = useState(7);
+  const [lastUnit, setLastUnit] = useState<'days' | 'weeks' | 'months'>('days');
+  const [lastEndValue] = useState(0);
+  const [lastEndUnit] = useState<TimeUnit>('days');
+  const [showRollingPicker, setShowRollingPicker] = useState(false);
   const [rollingRange, setRollingRange] = useState<RollingRange>({
     startPoint: 'firstDayOfMonth',
-    endPoint: 'today'
+    endPoint: 'today',
+    customDay: 1
   });
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [previousMonth, setPreviousMonth] = useState<Date>(subMonths(new Date(), 1));
-  const [activeTab, setActiveTab] = useState<TabType>('fixed');
-  const [showCustomOptions, setShowCustomOptions] = useState(false);
-  const [sinceValue, setSinceValue] = useState(7);
-  const [sinceUnit, setSinceUnit] = useState<TimeUnit>('days');
-  const [lastValue, setLastValue] = useState(7);
-  const [lastUnit, setLastUnit] = useState<TimeUnit>('days');
-  const [lastEndValue, setLastEndValue] = useState(0);
-  const [lastEndUnit, setLastEndUnit] = useState<TimeUnit>('days');
-  const [lastEnding, setLastEnding] = useState<'today' | 'yesterday' | 'custom'>('today');
-  const [lastEndingDate, setLastEndingDate] = useState<Date | null>(null);
   const [showTwoMonths, setShowTwoMonths] = useState(false);
-  const [isSinceMode, setIsSinceMode] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [previousMonth, setPreviousMonth] = useState(subMonths(new Date(), 1));
   const [sinceStartDate, setSinceStartDate] = useState<Date | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const customPickerRef = useRef<HTMLDivElement>(null);
-
-  const presetOptions: PresetOption[] = [
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: 'pastWeek', label: 'Past Week' },
-    { value: 'monthToDate', label: 'Month to Date' },
-    { value: 'past4Weeks', label: 'Past 4 Weeks' },
-    { value: 'past12Weeks', label: 'Past 12 Weeks' },
-    { value: 'yearToDate', label: 'Year to Date' },
-    { value: 'past6Months', label: 'Past 6 Months' },
-    { value: 'past12Months', label: 'Past 12 Months' }
-  ];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
-        setShowRollingPicker(false);
-      }
-      if (customPickerRef.current && !customPickerRef.current.contains(event.target as Node)) {
-        setShowCustomOptions(false);
       }
     };
 
@@ -82,101 +57,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange, initia
 
   const getDateRange = (range: string): { startDate: Date; endDate: Date } => {
     const today = new Date();
-    switch (range) {
-      case 'today':
-        return { startDate: today, endDate: today };
-      case 'yesterday':
-        const yesterday = subDays(today, 1);
-        return { startDate: yesterday, endDate: yesterday };
-      case 'pastWeek':
-        return { startDate: subDays(today, 7), endDate: today };
-      case 'monthToDate':
-        return { startDate: startOfMonth(today), endDate: today };
-      case 'past4Weeks':
-        return { startDate: subDays(today, 28), endDate: today };
-      case 'past12Weeks':
-        return { startDate: subDays(today, 84), endDate: today };
-      case 'yearToDate':
-        return { startDate: startOfYear(today), endDate: today };
-      case 'past6Months':
-        return { startDate: subMonths(today, 6), endDate: today };
-      case 'past12Months':
-        return { startDate: subMonths(today, 12), endDate: today };
-      case 'custom':
-        if (customStartDate && customEndDate) {
-          return { startDate: customStartDate, endDate: customEndDate };
-        }
-        return { startDate: today, endDate: today };
-      default:
-        return { startDate: today, endDate: today };
-    }
-  };
-
-  const getRollingDateRange = (range: RollingRange): { startDate: Date; endDate: Date } => {
-    const today = new Date();
-    const yesterday = subDays(today, 1);
-    let startDate: Date;
-    let endDate: Date;
-
-    // Set start date based on startPoint
-    switch (range.startPoint) {
-      case 'firstDayOfMonth':
-        startDate = startOfMonth(today);
-        break;
-      case 'lastDayOfMonth':
-        startDate = endOfMonth(subMonths(today, 1));
-        break;
-      case 'firstDayOfWeek':
-        startDate = startOfWeek(today);
-        break;
-      case 'lastDayOfWeek':
-        startDate = endOfWeek(subWeeks(today, 1));
-        break;
-      case 'lastMonday':
-        startDate = previousMonday(today);
-        break;
-      case 'lastFriday':
-        startDate = previousFriday(today);
-        break;
-      case 'customDay':
-        if (range.customDay !== undefined) {
-          const currentDay = getDay(today);
-          const daysToSubtract = (currentDay - range.customDay + 7) % 7;
-          startDate = subDays(today, daysToSubtract);
-        } else {
-          startDate = today;
-        }
-        break;
-      default:
-        startDate = today;
-    }
-
-    // Set end date based on endPoint
-    switch (range.endPoint) {
-      case 'today':
-        endDate = today;
-        break;
-      case 'yesterday':
-        endDate = yesterday;
-        break;
-      case 'endOfPreviousWeek':
-        endDate = endOfWeek(subWeeks(today, 1));
-        break;
-      case 'endOfPreviousMonth':
-        endDate = endOfMonth(subMonths(today, 1));
-        break;
-      default:
-        endDate = today;
-    }
-
-    return { startDate, endDate };
-  };
-
-  const handleRangeSelect = (range: DateRange) => {
-    setSelectedRange(range);
-    const today = new Date();
-    let startDate = new Date();
-    let endDate = new Date();
+    let startDate = today;
+    let endDate = today;
 
     switch (range) {
       case 'today':
@@ -233,94 +115,102 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange, initia
         break;
     }
 
-    onRangeChange({ startDate, endDate });
+    return { startDate, endDate };
   };
 
-  const handleRollingRangeSelect = () => {
-    setSelectedRange('rolling');
-    setShowRollingPicker(false);
-    onRangeChange(getRollingDateRange(rollingRange));
+  const handleRangeSelect = (range: string) => {
+    setSelectedRange(range);
+    if (range !== 'custom') {
+      const dateRange = getDateRange(range);
+      onRangeChange(dateRange);
+      setIsOpen(false);
+    }
   };
 
   const handleCustomRange = () => {
     setSelectedRange('custom');
-    setShowTwoMonths(true);
     setActiveTab('fixed');
-  };
-
-  const handleCustomDateChange = (date: Date | null, isStart: boolean) => {
-    if (isStart) {
-      setCustomStartDate(date);
-    } else {
-      setCustomEndDate(date);
-      if (customStartDate && date) {
-        onRangeChange({ startDate: customStartDate, endDate: date });
-      }
-    }
-  };
-
-  const handleSinceChange = (value: number, unit: TimeUnit) => {
-    const today = new Date();
-    let startDate = new Date();
-    
-    if (isSinceMode && sinceStartDate) {
-      // If we have a selected start date, calculate the difference
-      const diffTime = Math.abs(today.getTime() - sinceStartDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      switch (unit) {
-        case 'days':
-          setSinceValue(diffDays);
-          break;
-        case 'weeks':
-          setSinceValue(Math.ceil(diffDays / 7));
-          break;
-        case 'months':
-          setSinceValue(Math.ceil(diffDays / 30));
-          break;
-      }
-    } else {
-      // Normal calculation from today
-      switch (unit) {
-        case 'days':
-          startDate.setDate(today.getDate() - value);
-          break;
-        case 'weeks':
-          startDate.setDate(today.getDate() - (value * 7));
-          break;
-        case 'months':
-          startDate.setMonth(today.getMonth() - value);
-          break;
-      }
-      setSinceStartDate(startDate);
-    }
-    
-    setSinceValue(value);
-    setSinceUnit(unit);
-    onRangeChange({ startDate, endDate: today });
-  };
-
-  const handleSinceTabClick = () => {
-    setActiveTab('since');
-    setIsSinceMode(true);
-    const today = new Date();
-    // Set default to 7 days ago if no date is selected
-    const defaultStartDate = new Date();
-    defaultStartDate.setDate(today.getDate() - 7);
-    setSinceStartDate(defaultStartDate);
-    setSinceValue(7);
-    setSinceUnit('days');
-    onRangeChange({ startDate: defaultStartDate, endDate: today });
   };
 
   const handleFixedTabClick = () => {
     setActiveTab('fixed');
-    setIsSinceMode(false);
+  };
+
+  const handleSinceTabClick = () => {
+    setActiveTab('since');
   };
 
   const handleLastTabClick = () => {
     setActiveTab('last');
-    setIsSinceMode(false);
+  };
+
+  const handleSinceChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
+    setSinceValue(value);
+    setSinceUnit(unit);
+    
+    const today = new Date();
+    let startDate: Date;
+    
+    switch (unit) {
+      case 'days':
+        startDate = subDays(today, value);
+        break;
+      case 'weeks':
+        startDate = subWeeks(today, value);
+        break;
+      case 'months':
+        startDate = subMonths(today, value);
+        break;
+    }
+    
+    setSinceStartDate(startDate);
+    onRangeChange({ startDate, endDate: today });
+  };
+
+  const handleLastChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
+    setLastValue(value);
+    setLastUnit(unit);
+    
+    const today = new Date();
+    let startDate: Date;
+    
+    switch (unit) {
+      case 'days':
+        startDate = subDays(today, value);
+        break;
+      case 'weeks':
+        startDate = subWeeks(today, value);
+        break;
+      case 'months':
+        startDate = subMonths(today, value);
+        break;
+    }
+    
+    onRangeChange({ startDate, endDate: today });
+  };
+
+  const handleCustomDateChange = (date: Date, isStart: boolean) => {
+    if (isStart) {
+      setCustomStartDate(date);
+      if (customEndDate && date > customEndDate) {
+        setCustomEndDate(date);
+      }
+    } else {
+      setCustomEndDate(date);
+      if (customStartDate && date < customStartDate) {
+        setCustomStartDate(date);
+      }
+    }
+    
+    if (customStartDate && customEndDate) {
+      onRangeChange({ startDate: customStartDate, endDate: customEndDate });
+    }
+  };
+
+  const handleMonthChange = (date: Date) => {
+    setCurrentMonth(date);
+    setPreviousMonth(subMonths(date, 1));
+    setShowTwoMonths(true);
   };
 
   const handleCalendarSelect = (date: Date | null) => {
@@ -328,23 +218,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange, initia
     
     if (activeTab === 'since') {
       const today = new Date();
-      setCustomStartDate(date);
-      setCustomEndDate(today);
-      setSelectedRange('custom');
+      setSinceStartDate(date);
       onRangeChange({ startDate: date, endDate: today });
-      
-      // Update the since value and unit
-      const diffDays = differenceInDays(today, date);
-      if (diffDays <= 31) {
-        setSinceValue(diffDays);
-        setSinceUnit('days');
-      } else if (diffDays <= 90) {
-        setSinceValue(Math.ceil(diffDays / 7));
-        setSinceUnit('weeks');
-      } else {
-        setSinceValue(Math.ceil(diffDays / 30));
-        setSinceUnit('months');
-      }
     } else if (activeTab === 'fixed') {
       if (!customStartDate || (customStartDate && customEndDate)) {
         setCustomStartDate(date);
@@ -353,180 +228,73 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange, initia
         setCustomEndDate(date);
         onRangeChange({ startDate: customStartDate, endDate: date });
       }
-      setSelectedRange('custom');
-    } else if (activeTab === 'last') {
-      const today = new Date();
-      setCustomStartDate(date);
-      setCustomEndDate(today);
-      setSelectedRange('custom');
-      onRangeChange({ startDate: date, endDate: today });
-      
-      // Update the last value and unit
-      const diffDays = differenceInDays(today, date);
-      if (diffDays <= 31) {
-        setLastValue(diffDays);
-        setLastUnit('days');
-      } else if (diffDays <= 90) {
-        setLastValue(Math.ceil(diffDays / 7));
-        setLastUnit('weeks');
-      } else {
-        setLastValue(Math.ceil(diffDays / 30));
-        setLastUnit('months');
-      }
     }
   };
 
-  const handleLastChange = (value: number, unit: TimeUnit) => {
+  const handleRollingRangeSelect = () => {
     const today = new Date();
-    let startDate = new Date();
+    let startDate: Date;
     
-    switch (unit) {
-      case 'days':
-        startDate.setDate(today.getDate() - value);
+    switch (rollingRange.startPoint) {
+      case 'firstDayOfMonth':
+        startDate = startOfMonth(today);
         break;
-      case 'weeks':
-        startDate.setDate(today.getDate() - (value * 7));
+      case 'lastDayOfMonth':
+        startDate = endOfMonth(today);
         break;
-      case 'months':
-        startDate.setMonth(today.getMonth() - value);
+      case 'firstDayOfWeek':
+        startDate = startOfWeek(today);
+        break;
+      case 'lastDayOfWeek':
+        startDate = endOfWeek(today);
+        break;
+      case 'lastMonday':
+        startDate = previousMonday(today);
+        break;
+      case 'lastFriday':
+        startDate = previousFriday(today);
+        break;
+      case 'customDay':
+        const currentDay = getDay(today);
+        const customDay = rollingRange.customDay ?? 1; // Provide default value of 1 if undefined
+        const daysToSubtract = (currentDay - customDay + 7) % 7;
+        startDate = subDays(today, daysToSubtract);
         break;
     }
     
-    setLastValue(value);
-    setLastUnit(unit);
-    onRangeChange({ startDate, endDate: today });
-  };
-
-  const handleLastEndingChange = (ending: 'today' | 'yesterday' | 'custom') => {
-    setLastEnding(ending);
-    const today = new Date();
-    let endDate = new Date();
-    
-    switch (ending) {
+    let endDate: Date;
+    switch (rollingRange.endPoint) {
       case 'today':
         endDate = today;
         break;
       case 'yesterday':
         endDate = subDays(today, 1);
         break;
-      case 'custom':
-        if (lastEndingDate) {
-          endDate = lastEndingDate;
-        }
+      case 'endOfPreviousWeek':
+        endDate = endOfWeek(subWeeks(today, 1));
         break;
-    }
-    
-    const startDate = new Date();
-    switch (lastUnit) {
-      case 'days':
-        startDate.setDate(endDate.getDate() - lastValue);
-        break;
-      case 'weeks':
-        startDate.setDate(endDate.getDate() - (lastValue * 7));
-        break;
-      case 'months':
-        startDate.setMonth(endDate.getMonth() - lastValue);
+      case 'endOfPreviousMonth':
+        endDate = endOfMonth(subMonths(today, 1));
         break;
     }
     
     onRangeChange({ startDate, endDate });
-  };
-
-  const handleLastEndingDateChange = (date: Date) => {
-    setLastEndingDate(date);
-    const startDate = new Date();
-    
-    switch (lastUnit) {
-      case 'days':
-        startDate.setDate(date.getDate() - lastValue);
-        break;
-      case 'weeks':
-        startDate.setDate(date.getDate() - (lastValue * 7));
-        break;
-      case 'months':
-        startDate.setMonth(date.getMonth() - lastValue);
-        break;
-    }
-    
-    onRangeChange({ startDate, endDate: date });
+    setShowRollingPicker(false);
   };
 
   const getDisplayText = () => {
-    if (selectedRange === 'rolling') {
-      let startPointText = '';
-      let endPointText = '';
-      
-      // Format start point text
-      switch (rollingRange.startPoint) {
-        case 'firstDayOfMonth': startPointText = 'first day of month'; break;
-        case 'lastDayOfMonth': startPointText = 'last day of month'; break;
-        case 'firstDayOfWeek': startPointText = 'first day of week'; break;
-        case 'lastDayOfWeek': startPointText = 'last day of week'; break;
-        case 'lastMonday': startPointText = 'last monday'; break;
-        case 'lastFriday': startPointText = 'last friday'; break;
-        case 'customDay': startPointText = 'custom day of week'; break;
-      }
-      
-      // Format end point text
-      switch (rollingRange.endPoint) {
-        case 'today': endPointText = 'today'; break;
-        case 'yesterday': endPointText = 'yesterday'; break;
-        case 'endOfPreviousWeek': endPointText = 'end of previous week'; break;
-        case 'endOfPreviousMonth': endPointText = 'end of previous month'; break;
-      }
-      
-      return `Rolling: ${startPointText} to ${endPointText}`;
+    if (!selectedRange) {
+      return 'Select date range';
     }
-    if (selectedRange) {
-      const range = getDateRange(selectedRange);
-      switch (selectedRange) {
-        case 'today':
-          return format(new Date(), 'MMMM d, yyyy');
-        case 'yesterday':
-          return format(subDays(new Date(), 1), 'MMMM d, yyyy');
-        case 'pastWeek':
-          return `${format(subDays(new Date(), 7), 'MMM d')} - ${format(new Date(), 'MMM d, yyyy')}`;
-        case 'monthToDate':
-          return `${format(startOfMonth(new Date()), 'MMMM d')} - ${format(new Date(), 'MMMM d, yyyy')}`;
-        case 'past4Weeks':
-          return `Last 4 weeks (${format(subDays(new Date(), 28), 'MMM d')} - ${format(new Date(), 'MMM d, yyyy')})`;
-        case 'past12Weeks':
-          return `Last 12 weeks (${format(subDays(new Date(), 84), 'MMM d')} - ${format(new Date(), 'MMM d, yyyy')})`;
-        case 'yearToDate':
-          return `${format(startOfYear(new Date()), 'MMMM d')} - ${format(new Date(), 'MMMM d, yyyy')}`;
-        case 'past6Months':
-          return `Last 6 months (${format(subMonths(new Date(), 6), 'MMM d, yyyy')} - ${format(new Date(), 'MMM d, yyyy')})`;
-        case 'past12Months':
-          return `Last 12 months (${format(subMonths(new Date(), 12), 'MMM d, yyyy')} - ${format(new Date(), 'MMM d, yyyy')})`;
-        case 'custom':
-          if (customStartDate && customEndDate) {
-            if (activeTab === 'fixed') {
-              return `${format(customStartDate, 'MMM d, yyyy')} - ${format(customEndDate, 'MMM d, yyyy')}`;
-            } else if (activeTab === 'since') {
-              const daysDiff = differenceInDays(new Date(), customStartDate);
-              return `Show data since ${daysDiff} days ago (${format(customStartDate, 'MMM d, yyyy')})`;
-            } else if (activeTab === 'last') {
-              return `Last ${lastValue} ${lastUnit}${lastValue > 1 && !lastUnit.endsWith('s') ? 's' : ''} ending ${lastEndValue > 0 ? `${lastEndValue} ${lastEndUnit}${lastEndValue > 1 && !lastEndUnit.endsWith('s') ? 's' : ''} ago` : 'today'}`;
-            }
-          }
-          return 'Custom Range';
-        default:
-          return String(selectedRange).replace(/([A-Z])/g, ' $1').toLowerCase();
-      }
-    }
-    if (customStartDate && customEndDate) {
-      if (activeTab === 'since') {
-        const daysDiff = differenceInDays(new Date(), customStartDate);
-        return `Show data since ${daysDiff} days ago (${format(customStartDate, 'MMM d, yyyy')})`;
-      }
-      return `${format(customStartDate, 'MMM d, yyyy')} - ${format(customEndDate, 'MMM d, yyyy')}`;
-    }
-    return 'Select date range';
-  };
 
-  const handleMonthChange = (date: Date) => {
-    setCurrentMonth(date);
-    setPreviousMonth(subMonths(date, 1));
+    if (selectedRange === 'custom') {
+      if (customStartDate && customEndDate) {
+        return `${format(customStartDate, 'MMM d, yyyy')} - ${format(customEndDate, 'MMM d, yyyy')}`;
+      }
+      return 'Custom Range';
+    }
+
+    return String(selectedRange).replace(/([A-Z])/g, ' $1').toLowerCase();
   };
 
   return (
