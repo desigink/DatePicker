@@ -130,18 +130,22 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
   const handleCustomRange = () => {
     setSelectedRange('custom');
     setActiveTab('fixed');
+    setShowTwoMonths(true);
   };
 
   const handleFixedTabClick = () => {
     setActiveTab('fixed');
+    setShowTwoMonths(true);
   };
 
   const handleSinceTabClick = () => {
     setActiveTab('since');
+    setShowTwoMonths(true);
   };
 
   const handleLastTabClick = () => {
     setActiveTab('last');
+    setShowTwoMonths(true);
   };
 
   const handleSinceChange = (value: number, unit: 'days' | 'weeks' | 'months') => {
@@ -589,74 +593,48 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onRangeChange }) => {
               
               {selectedRange === 'custom' && (
                 <div className="flex gap-4">
-                  {showTwoMonths ? (
-                    <>
-                      <DatePicker
-                        selected={customStartDate}
-                        onChange={(dates: [Date | null, Date | null]) => {
-                          if (dates[0]) handleCustomDateChange(dates[0], true);
-                          if (dates[1]) handleCustomDateChange(dates[1], false);
-                        }}
-                        startDate={customStartDate}
-                        endDate={customEndDate}
-                        selectsRange
-                        inline
-                        maxDate={new Date()}
-                        monthsShown={1}
-                        showMonthDropdown
-                        showYearDropdown
-                        dropdownMode="select"
-                        className="w-full"
-                        dateFormat="MMMM yyyy"
-                        onMonthChange={handleMonthChange}
-                        openToDate={previousMonth}
-                        onSelect={handleCalendarSelect}
-                      />
-                      <DatePicker
-                        selected={customEndDate}
-                        onChange={(dates: [Date | null, Date | null]) => {
-                          if (dates[0]) handleCustomDateChange(dates[0], true);
-                          if (dates[1]) handleCustomDateChange(dates[1], false);
-                        }}
-                        startDate={customStartDate}
-                        endDate={customEndDate}
-                        selectsRange
-                        inline
-                        maxDate={new Date()}
-                        monthsShown={1}
-                        showMonthDropdown
-                        showYearDropdown
-                        dropdownMode="select"
-                        className="w-full"
-                        dateFormat="MMMM yyyy"
-                        onMonthChange={handleMonthChange}
-                        openToDate={currentMonth}
-                        onSelect={handleCalendarSelect}
-                      />
-                    </>
-                  ) : (
-                    <DatePicker
-                      selected={customStartDate}
-                      onChange={(dates: [Date | null, Date | null]) => {
-                        if (dates[0]) handleCustomDateChange(dates[0], true);
-                        if (dates[1]) handleCustomDateChange(dates[1], false);
-                      }}
-                      startDate={customStartDate}
-                      endDate={customEndDate}
-                      selectsRange
-                      inline
-                      maxDate={new Date()}
-                      monthsShown={1}
-                      showMonthDropdown
-                      showYearDropdown
-                      dropdownMode="select"
-                      className="w-full"
-                      dateFormat="MMMM yyyy"
-                      onMonthChange={handleMonthChange}
-                      openToDate={currentMonth}
-                      onSelect={handleCalendarSelect}
-                    />
-                  )}
+                  <DatePicker
+                    selected={customStartDate}
+                    onChange={(dates: [Date | null, Date | null]) => {
+                      if (dates[0]) handleCustomDateChange(dates[0], true);
+                      if (dates[1]) handleCustomDateChange(dates[1], false);
+                    }}
+                    startDate={customStartDate}
+                    endDate={customEndDate}
+                    selectsRange
+                    inline
+                    maxDate={new Date()}
+                    monthsShown={1}
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                    className="w-full"
+                    dateFormat="MMMM yyyy"
+                    onMonthChange={handleMonthChange}
+                    openToDate={previousMonth}
+                    onSelect={handleCalendarSelect}
+                  />
+                  <DatePicker
+                    selected={customEndDate}
+                    onChange={(dates: [Date | null, Date | null]) => {
+                      if (dates[0]) handleCustomDateChange(dates[0], true);
+                      if (dates[1]) handleCustomDateChange(dates[1], false);
+                    }}
+                    startDate={customStartDate}
+                    endDate={customEndDate}
+                    selectsRange
+                    inline
+                    maxDate={new Date()}
+                    monthsShown={1}
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                    className="w-full"
+                    dateFormat="MMMM yyyy"
+                    onMonthChange={handleMonthChange}
+                    openToDate={currentMonth}
+                    onSelect={handleCalendarSelect}
+                  />
                 </div>
               )}
               
